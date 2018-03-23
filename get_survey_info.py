@@ -59,6 +59,7 @@ def build_survey_data(surveys):
 def write_file(data):
   file = open("survey_data.py","w+")
   file.write("class Survey:\r\n  survey_data = %s" % json.dumps(data, indent=2))
+  file.close()
 
 surveys = get_all_surveys()
 final_data = build_survey_data(surveys)
