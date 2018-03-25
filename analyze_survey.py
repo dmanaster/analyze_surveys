@@ -2,66 +2,39 @@
 # (i.e. reg, hotel, networking, etc) against previous survey results 
 # by brand - possible?
 
-import requests
-import math
-from surveymonkey_keys import Key
+from target_questions import Target
+from survey_data import Survey
+from response_data import Response
 
-s = requests.Session()
-s.headers.update({
-  "Authorization": "Bearer %s" % Key.access_token,
-  "Content-Type": "application/json"
-})
+survey_data = Survey.survey_data
+target_surveys = Target.target_info
+response_data = Response.response_data
 
-survey_ids = [130576734]
+def get_nps_question(target_surveys):
+  for survey_id, data in target_surveys.items():
+    target_questions = data["questions"]
+    nps_question = target_questions["nps"]
+    return survey_id, nps_question
 
-def how_many_pages(survey_id):
-  url = "https://api.surveymonkey.com/v3/surveys/%s/responses/" % (survey_id)
-  parameters = {
-    "per_page": "100"
-  }
-  parsed_data = s.get(url, params=parameters).json()
-  print (parsed_data)
-  number_pages = math.ceil(parsed_data["total"]/100)
-  return number_pages
+def get_responses(survey_id, nps_question):
+  answer_array = {}
+  for response_id, response in response_data[survey_id].items():    
+    for page in response["pages"]:
+      for question in page["questions"]:
+        if question["id"] == nps_question:          
+          answer = question["answers"][0]["choice_id"]
+          if answer in answer_array:
+            answer_array[answer] += 1
+          else:
+            answer_array[answer] = 1
+  return answer_array
 
-def get_all_responses(survey_id, pages):
-  responses = []
-  for n in range(pages):
-    url = "https://api.surveymonkey.com/v3/surveys/%s/responses/bulk/" % (survey_id)
-    parameters = {
-      "per_page": "100",
-      "page": n+1
-    }
-    parsed_data = s.get(url, params=parameters).json()
-    page_responses = parsed_data["data"]
-    responses += (page_responses.copy())
-  return responses
-
-def get_survey_data(survey_id):
-  url = "https://api.surveymonkey.com/v3/surveys/%s/details/" % (survey_id)
-  parsed_data = s.get(url).json()
-  question_count = parsed_data["question_count"]
-  response_count = parsed_data["response_count"]
-  pages = parsed_data["pages"]
-  for page in pages:
-    questions = page["questions"]
-    print (questions)  
-  print (question_count)
-  print (response_count)
-
-  # number_questions = math.ceil(parsed_data["total"]/100)
-  # return number_questions
-
-# def get_all_questions(survey_id, pages):
-#   url = "https://api.surveymonkey.com/v3/surveys/%s/pages/1/questions" % (survey_id, page_id)
-#   parameters = {
-#     "per_page": "100",
-#   }
+      # for question_id, question in page["questions"].items():
+      #   if question["id"] == nps_question:
+      #     print(question)
 
 
 
-for survey_id in survey_ids:
-  questions = get_survey_data(survey_id)
-  # pages = how_many_pages(survey_id)
-  # responses = get_all_responses(survey_id, pages)
-  
+survey_id, question = get_nps_question(target_surveys)
+nps_answers = get_responses(survey_id, question)
+print (nps_answers)
