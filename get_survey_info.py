@@ -28,25 +28,6 @@ def get_survey_data(survey_id):
   parsed_data = s.get(url).json()
   survey_id = parsed_data["id"]
   data = parsed_data
-  # data = {}
-  # data[survey_id] = {}
-  # data[survey_id]["title"] = parsed_data["title"]
-  # data[survey_id]["question_count"] = parsed_data["question_count"]
-  # data[survey_id]["response_count"] = parsed_data["response_count"]
-  # pages = parsed_data["pages"]
-  # data[survey_id]["pages"] = {}
-  # for page in pages:
-  #   page_id = page["id"]
-  #   page_position = page["position"] 
-  #   data[survey_id]["pages"][page_id] = {}
-  #   data[survey_id]["pages"][page_id]["position"] = page_position
-  #   data[survey_id]["pages"][page_id]["questions"] = {}
-  #   questions = page["questions"]
-  #   for question in questions:
-  #     question_id = question["id"] 
-  #     question_position = question["position"] 
-  #     data[survey_id]["pages"][page_id]["questions"][question_id] = {}
-  #     data[survey_id]["pages"][page_id]["questions"][question_id]["position"] = question["position"]
   return data
 
 def build_survey_data(surveys):
@@ -61,7 +42,16 @@ def write_file(data):
   file.write("class Survey:\r\n  survey_data = %s" % json.dumps(data, indent=2))
   file.close()
 
+def clean_file():
+  with open('survey_data.py', 'r') as file :
+    filedata = file.read()
+  filedata = filedata.replace('true', 'True')
+  filedata = filedata.replace('false', 'False')
+  filedata = filedata.replace('null', 'None')
+  with open('survey_data.py', 'w') as file:
+    file.write(filedata)
+
 surveys = get_all_surveys()
 final_data = build_survey_data(surveys)
-print (len(final_data))
 write_file(final_data)
+clean_file()
