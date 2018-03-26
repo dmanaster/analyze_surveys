@@ -29,8 +29,10 @@ def get_survey_responses(survey_id, pages):
   return responses
 
 def get_survey(survey_id):
-  survey = Survey.survey_data[survey_id]
-  return survey
+  for survey in Survey.survey_data:
+    if survey["id"] == survey_id:
+      found_survey = survey
+      return found_survey
 
 def get_pages(survey):
   pages = math.ceil(survey["response_count"]/100)
@@ -42,7 +44,8 @@ def write_file(data):
   file.close()
 
 
-for key in Target.target_info:
-  pages = get_pages(get_survey(key))
-  survey_responses = get_survey_responses(key, pages)
-  write_file(survey_responses)
+for event_type, event in Target.target_info.items():
+  for survey_id in event:
+    pages = get_pages(get_survey(survey_id))
+    survey_responses = get_survey_responses(survey_id, pages)
+    write_file(survey_responses)
