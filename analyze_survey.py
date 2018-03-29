@@ -194,10 +194,9 @@ def create_component_charts(component_chart_data):
   for event_type, event in component_chart_data.items(): 
     final_data = []
     event_filename = "charts/" + event_type.lower().replace(" ", "_")+ "_component_chart.html"
-    print(event_type)
     for event_name, averages in event.items():   
       x_axis, y_axis = prepare_nps_chart_data(averages)
-      chart_title = "Event Component Scores"
+      chart_title = event_type + " Component Scores"
       final_data.append(Bar(
         x = x_axis, 
         y = y_axis,
