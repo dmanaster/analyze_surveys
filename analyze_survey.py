@@ -8,7 +8,7 @@ from response_data import Response
 from datetime import datetime
 import plotly
 from plotly import tools
-from plotly.graph_objs import Scatter, Layout
+from plotly.graph_objs import Scatter, Layout, Bar
 
 survey_data = Survey.survey_data
 target_surveys = Target.target_info
@@ -126,26 +126,26 @@ def calculate_averages(matched_answers):
   averages_dict = {}
   for key, value in matched_answers.items():
     total = 0
-    e = value["Excellent"] * 10
-    g = value["Good"] * 8
-    f = value["Fair"] * 6
-    p = value["Poor"] * 4
-    vp = value["Very Poor"] * 2
+    e = value["Excellent"] * 5
+    g = value["Good"] * 4
+    f = value["Fair"] * 3
+    p = value["Poor"] * 2
+    vp = value["Very Poor"] * 1
     for description, count in value.items():
       total += count
-    weighted_average = (e + g + f + p + vp)/total
+    weighted_average = round(((e + g + f + p + vp)/total), 2)
     averages_dict[key] = weighted_average
   return averages_dict
 
 def prepare_nps_chart_data(chart_data):
   x_axis = []
   y_axis = []
-  for event, nps in chart_data.items():
-    x_axis.append(event)
-    y_axis.append(nps)
+  for k, v in chart_data.items():
+    x_axis.append(k)
+    y_axis.append(v)
   return x_axis, y_axis
 
-def create_nps_charts(nps_chart_data):
+def create_nps_chart(nps_chart_data):
   final_data = []
   for event_type, nps_data in nps_chart_data.items():    
     x_axis, y_axis = prepare_nps_chart_data(nps_data)
@@ -154,35 +154,77 @@ def create_nps_charts(nps_chart_data):
         size = 10,
         color = 'rgb(103, 174, 68)'
         )
+      event_textfont = dict(
+        color = 'rgb(103, 174, 68)'
+        )
     elif event_type == "ERE Conference":
       event_marker = dict(
         size = 10,
+        color = 'rgb(22, 98, 133)'
+        )
+      event_textfont = dict(
         color = 'rgb(22, 98, 133)'
         )
     chart_title = "Event NPS Scores"
     final_data.append(Scatter(
         x = x_axis, 
         y = y_axis,
+        mode='lines+text',
+        textposition='top left',
         name = event_type,
         marker = event_marker,
-        text = []
+        textfont = event_textfont,
+        text = y_axis
         ))
   chart_layout = Layout(
-      margin = dict(
-        r = 150,
-        b = 200,
+    margin = dict(
+      r = 150,
+      b = 200,
       ),
     title = chart_title
   )
   plotly.offline.plot({
+    "data": final_data,
+    "layout": chart_layout
+  },
+    filename = "charts/nps_chart.html"
+  )
+
+def create_component_charts(component_chart_data):
+  for event_type, event in component_chart_data.items(): 
+    final_data = []
+    event_filename = "charts/" + event_type.lower().replace(" ", "_")+ "_component_chart.html"
+    print(event_type)
+    for event_name, averages in event.items():   
+      x_axis, y_axis = prepare_nps_chart_data(averages)
+      chart_title = "Event Component Scores"
+      final_data.append(Bar(
+        x = x_axis, 
+        y = y_axis,
+        textposition='top left',
+        name = event_name,
+        text = event_name
+        ))
+    chart_layout = Layout(
+      margin = dict(
+        r = 150,
+        b = 200,
+        ),
+      title = chart_title
+      )
+    plotly.offline.plot({
       "data": final_data,
       "layout": chart_layout
-  })
+    },
+      filename = event_filename
+    )
 
 question_types = ["nps", "components"]
 nps_chart_data = {}
+component_chart_data = {}
 for event_type, event_data in target_surveys.items():
   nps_chart_data[event_type] = {}
+  component_chart_data[event_type] = {}
   for survey_id, data in event_data.items():
     question_info = get_questions(survey_id, data, question_types)
     for question_type in question_types:
@@ -196,5 +238,7 @@ for event_type, event_data in target_surveys.items():
         answers = get_component_responses(question_info)
         matched_answers = match_answers(question_type, question_info, answers)
         averages = calculate_averages(matched_answers)
+        component_chart_data[event_type][data["title"]] = averages
         # for component, average in averages.items():
-create_nps_charts(nps_chart_data)
+create_nps_chart(nps_chart_data)
+create_component_charts(component_chart_data)
