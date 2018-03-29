@@ -4,3 +4,4 @@ survey_data.py
 response_data.py
 target_questions.py
 *.pyc
+*.html
