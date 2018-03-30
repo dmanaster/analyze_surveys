@@ -137,7 +137,7 @@ def calculate_averages(matched_answers):
     averages_dict[key] = weighted_average
   return averages_dict
 
-def prepare_nps_chart_data(chart_data):
+def prepare_chart_data(chart_data):
   x_axis = []
   y_axis = []
   for k, v in chart_data.items():
@@ -148,7 +148,7 @@ def prepare_nps_chart_data(chart_data):
 def create_nps_chart(nps_chart_data):
   final_data = []
   for event_type, nps_data in nps_chart_data.items():    
-    x_axis, y_axis = prepare_nps_chart_data(nps_data)
+    x_axis, y_axis = prepare_chart_data(nps_data)
     if event_type == "SourceCon":
       event_marker = dict(
         size = 10,
@@ -190,20 +190,40 @@ def create_nps_chart(nps_chart_data):
     filename = "charts/nps_chart.html"
   )
 
+def get_component_averages(event_type, data):
+  component_averages = {}
+  for event_name, averages in data.items():
+    if (event_type == ("SourceCon") and event_name.startswith("Source")):
+      for component_name, average in averages.items():
+        if component_name not in component_averages.keys():
+          component_averages[component_name] = []
+        component_averages[component_name].append(average)
+    elif (event_type == ("ERE Conference") and event_name.startswith("ERE")):
+      for component_name, average in averages.items():
+        if component_name not in component_averages.keys():
+          component_averages[component_name] = []
+        component_averages[component_name].append(average)
+  for component_name, scores in component_averages.items():
+    component_averages[component_name] = round(sum(component_averages[component_name]) / len(component_averages[component_name]), 2)
+  return component_averages
+    
 def create_component_charts(component_chart_data):
   for event_type, event in component_chart_data.items(): 
     final_data = []
+    component_averages = get_component_averages(event_type, event)
     event_filename = "charts/" + event_type.lower().replace(" ", "_")+ "_component_chart.html"
     for event_name, averages in event.items():   
-      x_axis, y_axis = prepare_nps_chart_data(averages)
+      bar_x_axis, bar_y_axis = prepare_chart_data(averages)
+      scatter_x_axis, scatter_y_axis = prepare_chart_data(component_averages)
       chart_title = event_type + " Component Scores"
       final_data.append(Bar(
-        x = x_axis, 
-        y = y_axis,
+        x = bar_x_axis, 
+        y = bar_y_axis,
         textposition='top left',
         name = event_name,
         text = event_name
-        ))
+        )
+      )
     chart_layout = Layout(
       margin = dict(
         r = 150,
@@ -211,6 +231,22 @@ def create_component_charts(component_chart_data):
         ),
       title = chart_title
       )
+    final_data.append(Scatter(
+      x = scatter_x_axis, 
+      y = scatter_y_axis,
+      mode = 'markers',
+      name = "Average Score",
+      text = "Average Score",
+      marker = dict(
+        symbol = 'line-ns-open',
+        color = 'rgb(0, 0, 0)',
+        size = 1,
+        line = dict(
+          width = 75
+          )
+        )
+      )
+    )
     plotly.offline.plot({
       "data": final_data,
       "layout": chart_layout
