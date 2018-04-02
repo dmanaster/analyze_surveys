@@ -22,10 +22,8 @@ def get_questions(survey_id, target_survey, question_types):
     id_info[question_type] = {}
     id_info[question_type]["page_id"] = target_questions[question_type]["page_id"]
     id_info[question_type]["question_id"] = target_questions[question_type]["question_id"]
+  print (id_info)
   return id_info 
-
-def get_index(content_list, content_id): 
-  return content_list.index(item)        
 
 def initialize_answer_array(question_type, question_info):
   survey_id, page_id, question_id = get_ids(question_info)
@@ -77,6 +75,9 @@ def get_component_responses(question_info):
               choice_id = answer["choice_id"]
               answer_array[row_id][choice_id] += 1
   return answer_array
+
+def get_index(content_list, content_id): 
+  return content_list.index(item)        
 
 def get_indexes(survey, question_info):
   survey_id, page_id, question_id = get_ids(question_info)
