@@ -43,7 +43,6 @@ def write_file(data):
   file.write("class Response:\r\n  response_data = %s" % json.dumps(data, indent=2))
   file.close()
 
-
 for event_type, event in Target.target_info.items():
   for survey_id in event:
     pages = get_pages(get_survey(survey_id))

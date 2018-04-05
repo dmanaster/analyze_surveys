@@ -1,7 +1,3 @@
-# what would be valuable is to track results on the areas of the event 
-# (i.e. reg, hotel, networking, etc) against previous survey results 
-# by brand - possible?
-
 from target_questions import Target
 from survey_data import Survey
 from response_data import Response
@@ -22,7 +18,6 @@ def get_questions(survey_id, target_survey, question_types):
     id_info[question_type] = {}
     id_info[question_type]["page_id"] = target_questions[question_type]["page_id"]
     id_info[question_type]["question_id"] = target_questions[question_type]["question_id"]
-  print (id_info)
   return id_info 
 
 def initialize_answer_array(question_type, question_info):
@@ -275,6 +270,5 @@ for event_type, event_data in target_surveys.items():
         matched_answers = match_answers(question_type, question_info, answers)
         averages = calculate_averages(matched_answers)
         component_chart_data[event_type][data["title"]] = averages
-        # for component, average in averages.items():
 create_nps_chart(nps_chart_data)
 create_component_charts(component_chart_data)

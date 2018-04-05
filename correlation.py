@@ -7,7 +7,6 @@ import plotly
 from plotly import tools
 from plotly.graph_objs import Scatter, Layout
 
-
 survey_data = Survey.survey_data
 target_surveys = Target.target_info
 response_data = Response.response_data
@@ -145,7 +144,7 @@ def match_answers(all_answers, question_info):
                 answer["components_answers"][components_row["text"]] = answer["components_answers"].pop(components_row["id"])
   return all_answers
 
-def calculate_correlations(matched_answers):
+def calculate_correlations(event_type, matched_answers):
   correlations = {}
   flattened_answers = {}
   coordinates = {}
@@ -155,48 +154,79 @@ def calculate_correlations(matched_answers):
       for component_name, component_value in response["components_answers"].items():
         if component_name not in coordinates:
           coordinates[component_name] = {}
-          coordinates[component_name]["x_axis"] = []
-          coordinates[component_name]["y_axis"] = []
+          coordinates[component_name]["coords"] = []
         correlations[component_name] = {}
+        correlations[component_name]["n"] = 0
         correlations[component_name]["sum_x"] = 0
         correlations[component_name]["sum_y"] = 0
         correlations[component_name]["sum_xy"] = 0
         correlations[component_name]["sum_x_squared"] = 0
         correlations[component_name]["sum_y_squared"] = 0
         correlations[component_name]["correlation"] = None
-  n = 0  
   for response_id, response in flattened_answers.items():
-    n += 1
     for component_name, component_value in response["components_answers"].items():
       if component_value != "Not Applicable":
         x = int(response["nps_answer"])
         y = int(component_value)
+        correlations[component_name]["n"] += 1
         correlations[component_name]["sum_x"] += x
         correlations[component_name]["sum_y"] += y
         correlations[component_name]["sum_xy"] += (x * y)
         correlations[component_name]["sum_x_squared"] += (x * x)
         correlations[component_name]["sum_y_squared"] += (y * y)
-        coordinates[component_name]["x_axis"].append(x)
-        coordinates[component_name]["y_axis"].append(y)
-  for component, stats in correlations.items():
-    stats["correlation"] = (n * stats["sum_xy"] - stats["sum_x"] * stats["sum_y"]) / math.sqrt((n * stats["sum_x_squared"] - stats["sum_x"] * stats["sum_x"]) * (n * stats["sum_y_squared"] - stats["sum_y"] * stats["sum_y"]))
-  return correlations, coordinates
+        coordinates[component_name]["coords"].append([x, y])
+  for component_name, stats in correlations.items():
+    stats["correlation"] = (stats["n"] * stats["sum_xy"] - stats["sum_x"] * stats["sum_y"]) / math.sqrt((stats["n"] * stats["sum_x_squared"] - stats["sum_x"] * stats["sum_x"]) * (stats["n"] * stats["sum_y_squared"] - stats["sum_y"] * stats["sum_y"]))
+  final_coordinates = {}
+  for component_name, component_coords in coordinates.items():
+    final_coordinates[component_name] = {}
+    for coord in component_coords["coords"]:
+      tuple_coord = tuple(coord)
+      if tuple_coord in final_coordinates[component_name]:
+          final_coordinates[component_name][tuple_coord] += 1
+      else:
+          final_coordinates[component_name][tuple_coord] = 1
+  return correlations, final_coordinates
 
-def create_scatter_charts(coordinates):
+def create_scatter_charts(event_type, coordinates, correlations):
   counter = 0
-  for component_name, axis in coordinates.items():   
+  for component_name, data in coordinates.items():   
+    correlation = round(correlations[component_name]["correlation"], 2)
     final_data = []
     counter += 1 
-    x_axis = axis["x_axis"]
-    y_axis = axis["y_axis"]
-    chart_title = "SourceCon NPS Scores vs %s Scores" % component_name 
+    x_axis = []
+    y_axis = []
+    number_responses = []
+    total_responses = sum(data.values())
+    for coord, num in data.items():
+      x_axis.append(coord[0])
+      y_axis.append(coord[1])
+      number_responses.append(num)
+    magnitude = [str(round((x/total_responses*100), 2)) + "%" for x in number_responses]
+    bubble_size = [round(x/total_responses*600) for x in number_responses]
+    chart_title = "%s NPS Scores vs %s Scores \n Correlation: %s" % (event_type, component_name, correlation)
     final_data.append(Scatter(
+        text = magnitude,
         x = x_axis, 
         y = y_axis,
-        mode='markers',
+        mode = 'markers',
+        marker = dict(
+            size = bubble_size,
+        )
         ))
     chart_layout = Layout(
-      title = chart_title
+      title = chart_title,
+      xaxis = dict(
+        # tick0=0,
+        dtick = 1,
+        ticklen = 6,
+        range = [0, 12]
+      ),
+      yaxis = dict(
+        dtick = 1,
+        ticklen = 6,
+        range = [0, 6]
+      )
     )
     plotly.offline.plot({
       "data": final_data,
@@ -204,16 +234,16 @@ def create_scatter_charts(coordinates):
     },
       filename = "charts/component_chart_%s.html" % counter
     )
-
-all_answers = {}
 matched_answers = {}
-# for event_type, event_data in target_surveys.items():
-for survey_id, data in target_surveys["SourceCon"].items():
-  question_info = get_questions(survey_id, data)
-  answers = get_responses(question_info)
-  all_answers.update(answers)
-  matched_answers.update(match_answers(all_answers, question_info))
-correlations, coordinates = calculate_correlations(matched_answers)
-create_scatter_charts(coordinates)
-for component_name, scores in correlations.items():
-  print (component_name + ": " + str(round(scores["correlation"], 2)))
+for event_type, event_data in target_surveys.items():
+  all_answers = {}
+  matched_answers[event_type] = {}
+  for survey_id, data in event_data.items():
+    question_info = get_questions(survey_id, data)
+    answers = get_responses(question_info)
+    all_answers.update(answers)
+    matched_answers[event_type].update(match_answers(all_answers, question_info))
+  correlations, coordinates = calculate_correlations(event_type, matched_answers[event_type])
+  create_scatter_charts(event_type, coordinates, correlations)
+  for component_name, scores in correlations.items():
+    print (event_type + " " + component_name + ": " + str(round(scores["correlation"], 2)))
