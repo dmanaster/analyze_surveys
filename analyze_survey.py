@@ -136,6 +136,9 @@ def calculate_averages(matched_answers):
 def prepare_chart_data(chart_data):
   x_axis = []
   y_axis = []
+  chart_data.pop("Group Discussions", None)
+  chart_data.pop("Short Takes / TAD Talks", None)
+  chart_data.pop("Think Tanks", None)
   for k, v in chart_data.items():
     x_axis.append(k)
     y_axis.append(v)

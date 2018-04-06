@@ -245,5 +245,8 @@ for event_type, event_data in target_surveys.items():
     matched_answers[event_type].update(match_answers(all_answers, question_info))
   correlations, coordinates = calculate_correlations(event_type, matched_answers[event_type])
   create_scatter_charts(event_type, coordinates, correlations)
+  correlations.pop("Group Discussions", None)
+  correlations.pop("Short Takes / TAD Talks", None)
+  correlations.pop("Think Tanks", None)
   for component_name, scores in correlations.items():
     print (event_type + " " + component_name + ": " + str(round(scores["correlation"], 2)))
