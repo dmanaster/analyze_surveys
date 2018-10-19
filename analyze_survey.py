@@ -109,7 +109,11 @@ def calculate_nps(matched_answers):
   for key, value in matched_answers.items():
     if key.startswith("10 "):
       ten_key = key
+    elif key.startswith("Extremely likely"):
+      ten_key = key
     if key.startswith("1 ") or key.startswith("1<"):
+      one_key = key
+    elif key.startswith("Not at all likely"):
       one_key = key
   promoters = (matched_answers[ten_key] + matched_answers["9"])
   passives = (matched_answers["8"] + matched_answers["7"])
