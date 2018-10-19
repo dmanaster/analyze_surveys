@@ -104,22 +104,29 @@ def match_answers(question_type, question_info, answer_array):
   return answer_array
 
 def calculate_nps(matched_answers):
-  ten_key = None
+  zero_key = None
   one_key = None
+  ten_key = None
+  if "0" not in matched_answers:
+    matched_answers["0"] = 0
   for key, value in matched_answers.items():
     if key.startswith("10 "):
       ten_key = key
     elif key.startswith("Extremely likely"):
       ten_key = key
     if key.startswith("1 ") or key.startswith("1<"):
+      zero_key = "0"
       one_key = key
-    elif key.startswith("Not at all likely"):
-      one_key = key
+    elif key == "Not at all likely - 0":
+      zero_key = key
+      one_key = "1"
   promoters = (matched_answers[ten_key] + matched_answers["9"])
   passives = (matched_answers["8"] + matched_answers["7"])
-  detractors = (matched_answers["6"] + matched_answers["5"] + matched_answers["4"] + matched_answers["3"] + matched_answers["2"] + matched_answers[one_key])
+  detractors = (matched_answers["6"] + matched_answers["5"] + matched_answers["4"] + matched_answers["3"] + matched_answers["2"] + matched_answers[one_key] + matched_answers[zero_key])
   total = promoters + passives + detractors
   nps = round((promoters - detractors)/total*100)
+  print ("Total respondants: " + str(total))
+  print ("NPS: " + str(nps))
   return nps
 
 def calculate_averages(matched_answers):
@@ -264,6 +271,7 @@ for event_type, event_data in target_surveys.items():
   nps_chart_data[event_type] = {}
   component_chart_data[event_type] = {}
   for survey_id, data in event_data.items():
+    print (data['title'])
     question_info = get_questions(survey_id, data, question_types)
     for question_type in question_types:
       if question_type == "nps":
@@ -277,5 +285,6 @@ for event_type, event_data in target_surveys.items():
         matched_answers = match_answers(question_type, question_info, answers)
         averages = calculate_averages(matched_answers)
         component_chart_data[event_type][data["title"]] = averages
+    print ()
 create_nps_chart(nps_chart_data)
 create_component_charts(component_chart_data)
